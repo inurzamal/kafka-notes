@@ -1,0 +1,145 @@
+@KafkaListener(
+    id = KafkaConsumerConstants.NSS_CHANGE_DATA_LISTENER_ID,
+    topics = "${spring.kafka.template.topic}",
+    autoStartup = "${autostart.consumer}"
+)
+public void consume(String message) {
+    ...
+}
+------
+public final class KafkaConsumerConstants {
+
+    private KafkaConsumerConstants() {}
+
+    public static final String NSS_CHANGE_DATA_LISTENER_ID =
+            "nssChangeDataConsumer";
+}
+---
+package com.citi.kafka.services;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
+import org.springframework.kafka.listener.MessageListenerContainer;
+import org.springframework.stereotype.Service;
+
+import static com.citi.kafka.constants.KafkaConsumerConstants
+        .NSS_CHANGE_DATA_LISTENER_ID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class KafkaConsumerControlService {
+
+    private final KafkaListenerEndpointRegistry registry;
+
+    private MessageListenerContainer getContainer() {
+        MessageListenerContainer container =
+                registry.getListenerContainer(NSS_CHANGE_DATA_LISTENER_ID);
+
+        if (container == null) {
+            throw new IllegalStateException(
+                    "Kafka listener container not found for id: "
+                            + NSS_CHANGE_DATA_LISTENER_ID);
+        }
+        return container;
+    }
+
+    public void startConsumer() {
+        MessageListenerContainer container = getContainer();
+
+        if (!container.isRunning()) {
+            container.start();
+            log.info("Kafka consumer [{}] started",
+                    NSS_CHANGE_DATA_LISTENER_ID);
+        } else {
+            log.info("Kafka consumer [{}] already running",
+                    NSS_CHANGE_DATA_LISTENER_ID);
+        }
+    }
+
+    public void stopConsumer() {
+        MessageListenerContainer container = getContainer();
+
+        if (container.isRunning()) {
+            container.stop();
+            log.info("Kafka consumer [{}] stopped",
+                    NSS_CHANGE_DATA_LISTENER_ID);
+        } else {
+            log.info("Kafka consumer [{}] already stopped",
+                    NSS_CHANGE_DATA_LISTENER_ID);
+        }
+    }
+
+    public void pauseConsumer() {
+        MessageListenerContainer container = getContainer();
+
+        if (!container.isPauseRequested()) {
+            container.pause();
+            log.info("Kafka consumer [{}] paused",
+                    NSS_CHANGE_DATA_LISTENER_ID);
+        }
+    }
+
+    public void resumeConsumer() {
+        MessageListenerContainer container = getContainer();
+
+        if (container.isPauseRequested()) {
+            container.resume();
+            log.info("Kafka consumer [{}] resumed",
+                    NSS_CHANGE_DATA_LISTENER_ID);
+        }
+    }
+
+    public boolean isConsumerRunning() {
+        return getContainer().isRunning();
+    }
+}
+-----
+package com.citi.kafka.controllers;
+
+import com.citi.kafka.services.KafkaConsumerControlService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/admin/kafka/consumer")
+@RequiredArgsConstructor
+public class KafkaConsumerAdminController {
+
+    private final KafkaConsumerControlService service;
+
+    @PostMapping("/start")
+    public ResponseEntity<String> startConsumer() {
+        service.startConsumer();
+        return ResponseEntity.ok("Kafka consumer started");
+    }
+
+    @PostMapping("/stop")
+    public ResponseEntity<String> stopConsumer() {
+        service.stopConsumer();
+        return ResponseEntity.ok("Kafka consumer stopped");
+    }
+
+    @PostMapping("/pause")
+    public ResponseEntity<String> pauseConsumer() {
+        service.pauseConsumer();
+        return ResponseEntity.ok("Kafka consumer paused");
+    }
+
+    @PostMapping("/resume")
+    public ResponseEntity<String> resumeConsumer() {
+        service.resumeConsumer();
+        return ResponseEntity.ok("Kafka consumer resumed");
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<String> status() {
+        return ResponseEntity.ok(
+                service.isConsumerRunning()
+                        ? "Kafka consumer is RUNNING"
+                        : "Kafka consumer is STOPPED"
+        );
+    }
+}
