@@ -1,0 +1,27 @@
+public void startConsumer() {
+    startOrStop(true);
+}
+
+public void stopConsumer() {
+    startOrStop(false);
+}
+
+private void startOrStop(boolean start) {
+    MessageListenerContainer container = getContainer();
+
+    if (start) {
+        if (container.isRunning()) {
+            log.info("Kafka consumer already running");
+            return;
+        }
+        container.start();
+        log.info("Kafka consumer started");
+    } else {
+        if (!container.isRunning()) {
+            log.info("Kafka consumer already stopped");
+            return;
+        }
+        container.stop();
+        log.info("Kafka consumer stopped");
+    }
+}
