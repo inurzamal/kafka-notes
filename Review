@@ -1,0 +1,19 @@
+public void startConsumer() {
+    MessageListenerContainer container = getContainer();
+    if (container.isRunning()) {
+        log.info("Kafka consumer already running");
+        return;
+    }
+    container.start();
+    log.info("Kafka consumer started");
+}
+
+public void stopConsumer() {
+    MessageListenerContainer container = getContainer();
+    if (!container.isRunning()) {
+        log.info("Kafka consumer already stopped");
+        return;
+    }
+    container.stop();
+    log.info("Kafka consumer stopped");
+}
