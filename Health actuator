@@ -1,0 +1,22 @@
+@Component
+@RequiredArgsConstructor
+public class KafkaListenerHealthIndicator implements HealthIndicator {
+
+    private final KafkaListenerEndpointRegistry registry;
+
+    @Override
+    public Health health() {
+
+        var container = registry.getListenerContainer("nssChangeDataConsumer");
+
+        if (container == null) {
+            return Health.up()
+                    .withDetail("kafkaListener", "NOT_FOUND")
+                    .build();
+        }
+
+        return Health.up()
+                .withDetail("kafkaListener", container.isRunning() ? "RUNNING" : "STOPPED")
+                .build();
+    }
+}
